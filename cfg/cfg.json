@@ -1,0 +1,11 @@
+{
+    "sufTasks": [
+        "git add -A",
+        "git commit -m 'jt'",
+        "git push"
+    ],
+    "root": "./",
+    "workDir": "./",
+    "db": "data",
+    "logDir": "log"
+}
