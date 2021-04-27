@@ -12,9 +12,9 @@ type Task struct {
 	ID      int
 	State   int
 	Ip      string
-	Pattern string `json:"pattern"`
-	Team    string `json:"team"`
-	Branch  string `json:"branch"`
+	Pattern string
+	Team    string
+	Branch  string
 	ctx     context.Context
 	cancel  context.CancelFunc
 }
@@ -27,7 +27,7 @@ func (t *Task) run() {
 	t.State = 1
 
 	// log
-	logPath := com.GetLogPath(t.ID)
+	logPath := com.LogPath(t.ID)
 	log, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		StopTask()
@@ -36,7 +36,7 @@ func (t *Task) run() {
 	defer log.Close()
 
 	tasks := []string{fmt.Sprintf("mo t %s --%s@%s", t.Pattern, t.Team, t.Branch)}
-	tasks = append(tasks, com.GetSufTask()...)
+	tasks = append(tasks, com.SufTask()...)
 	for _, v := range tasks {
 		cmd := exec.CommandContext(t.ctx, v)
 		cmd.Stderr = log
@@ -57,4 +57,12 @@ func (t *Task) run() {
 			StopTask()
 		}
 	}
+}
+
+func (t *Task) end() {
+	if t.cancel == nil {
+		return
+	}
+	t.cancel()
+	t.cancel = nil
 }

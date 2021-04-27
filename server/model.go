@@ -52,4 +52,11 @@ func updateTask(t *Task) (err error) {
 	dm.Lock()
 	defer dm.Unlock()
 
+	stmt, err := DB.Prepare(`update t_task set state=? end=? where id=?`)
+	if err != nil {
+		return
+	}
+
+	_, err = stmt.Exec(t.State, time.Now(), t.ID)
+	return
 }

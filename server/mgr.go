@@ -80,10 +80,13 @@ func Run() {
 	// go t.run()
 }
 
-func StopTask(status int) {
+func StopTask(state int) {
 	t := mgr.task
 	if t == nil || t.cancel == nil {
 		return
 	}
 
+	defer t.end()
+	t.State = state
+	updateTask(t)
 }
