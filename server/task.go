@@ -6,31 +6,32 @@ import (
 	"lgc/com"
 	"os"
 	"os/exec"
+	"time"
 )
 
 type Task struct {
-	ID      int
-	State   int
-	Ip      string
-	Pattern string
-	Team    string
-	Branch  string
+	ID      int       `json:"id" sql:"id"`
+	State   int       `json:"state" sql:"state"`
+	Ip      string    `json:"ip" sql:"ip"`
+	Pattern string    `json:"pattern" sql:"pattern"`
+	Team    string    `json:"team" sql:"team"`
+	Branch  string    `json:"branch" sql:"branch"`
+	End     time.Time `json:"time" sql:"end"`
 	ctx     context.Context
 	cancel  context.CancelFunc
 }
 
 func (t *Task) run() {
-	if t.State == 1 || t.cancel == nil {
+	if t.State == com.Running || t.cancel == nil {
 		return
 	}
 
-	t.State = 1
+	t.State = com.Running
 
-	// log
 	logPath := com.LogPath(t.ID)
 	log, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		StopTask()
+		StopTask(com.Interrupt, t.ID)
 		return
 	}
 	defer log.Close()
@@ -38,14 +39,18 @@ func (t *Task) run() {
 	tasks := []string{fmt.Sprintf("mo t %s --%s@%s", t.Pattern, t.Team, t.Branch)}
 	tasks = append(tasks, com.SufTask()...)
 	for _, v := range tasks {
+		if t.State != com.Running {
+			return
+		}
+
 		cmd := exec.CommandContext(t.ctx, v)
 		cmd.Stderr = log
 		cmd.Stdout = log
-		cmd.Dir = com.WkDir
+		cmd.Dir = com.WkDir()
 
 		err = cmd.Run()
 		if err != nil {
-			StopTask()
+			StopTask(com.Interrupt, t.ID)
 			return
 		}
 
@@ -54,9 +59,11 @@ func (t *Task) run() {
 			code = cmd.ProcessState.ExitCode()
 		}
 		if code != 0 {
-			StopTask()
+			StopTask(com.Interrupt, t.ID)
 		}
 	}
+
+	StopTask(com.Succ, t.ID)
 }
 
 func (t *Task) end() {

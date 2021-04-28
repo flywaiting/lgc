@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"sync"
 )
 
@@ -15,15 +14,21 @@ type taskMgr struct {
 	cancel context.CancelFunc
 }
 
-type addInfo struct {
-	Pattern string `json:"pattern"`
-	Team    string `json:"team"`
-	Branch  string `json:"branch"`
+type taskInfo struct {
+	Cur  *Task   `json:"cur"`
+	Todo []*Task `json:"todo"`
+	Done []*Task `json:"done"`
 }
 
+// type addInfo struct {
+// 	Pattern string `json:"pattern"`
+// 	Team    string `json:"team"`
+// 	Branch  string `json:"branch"`
+// }
+
 var (
-	mgr *taskMgr
-	tm  sync.RWMutex
+	mgr      *taskMgr
+	mgrMutex sync.RWMutex
 )
 
 func init() {
@@ -32,24 +37,23 @@ func init() {
 }
 
 func AddTask(reader io.Reader, ip string) (err error) {
-	data, err := ioutil.ReadAll(reader)
+	data, err := io.ReadAll(reader)
 	if err != nil {
 		return
 	}
 
-	info := &addInfo{}
-	err = json.Unmarshal(data, info)
+	mgrMutex.Lock()
+	defer mgrMutex.Unlock()
+
+	// info := &addInfo{}
+	t := &Task{}
+	err = json.Unmarshal(data, t)
 	if err != nil {
 		return
 	}
 
-	t := &Task{
-		Pattern: info.Pattern,
-		Team:    info.Team,
-		Branch:  info.Branch,
-		Ip:      ip,
-	}
-	t.ID = InsertTask(t)
+	t.Ip = ip
+	insertTask(t)
 	if t.ID == 0 {
 		err = fmt.Errorf("任务添加失败")
 		return
@@ -59,34 +63,45 @@ func AddTask(reader io.Reader, ip string) (err error) {
 }
 
 func Run() {
-	// dm.Lock()
-	// defer dm.Unlock()
+	mgrMutex.Lock()
+	defer mgrMutex.Unlock()
 
-	// if mgr.task == nil {
-	// 	if len(mgr.TodoList) == 0 {
-	// 		return
-	// 	}
-
-	// 	mgr.task = mgr.TodoList[0]
-	// 	mgr.TodoList = mgr.TodoList[1:]
-	// }
-
-	// t := mgr.task
-	// if t.cancel != nil {
-	// 	return
-	// }
-
-	// t.ctx, t.cancel = context.WithCancel(mgr.ctx)
-	// go t.run()
-}
-
-func StopTask(state int) {
-	t := mgr.task
-	if t == nil || t.cancel == nil {
+	if mgr.task != nil {
 		return
 	}
 
-	defer t.end()
-	t.State = state
-	updateTask(t)
+	t := getTask()
+	if t == nil {
+		return
+	}
+
+	mgr.task = t
+	t.ctx, t.cancel = context.WithCancel(mgr.ctx)
+	go t.run()
+}
+
+func StopTask(state int, id int) {
+	defer Run()
+
+	mgrMutex.Lock()
+	defer mgrMutex.Unlock()
+
+	updateTask(id, state)
+
+	t := mgr.task
+	if t != nil && t.ID == id {
+		mgr.task = nil
+		t.State = state
+		t.end()
+	}
+}
+
+func TaskInfo() (data []byte, err error) {
+	info := &taskInfo{}
+	info.Cur = mgr.task
+	info.Todo = todoList()
+	info.Done = doneList()
+
+	data, err = json.Marshal(info)
+	return
 }
