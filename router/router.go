@@ -2,8 +2,10 @@ package router
 
 import (
 	"embed"
+	"fmt"
 	"lgc/com"
 	"lgc/server"
+	"lgc/util"
 	"net/http"
 	"strings"
 )
@@ -15,11 +17,14 @@ var (
 func InitRouter(static *embed.FS) {
 	Mux = http.NewServeMux()
 
-	Mux.Handle("/lgc/", http.StripPrefix("/lgc/", http.FileServer(http.FS(static))))
+	// Mux.Handle("/lgc/", http.StripPrefix("/lgc/", http.FileServer(http.FS(static))))
+	Mux.Handle("/lgc/", http.StripPrefix("/lgc/", http.FileServer(http.Dir("static"))))
 	Mux.HandleFunc("/addTask", addTask)
 	Mux.HandleFunc("/taskInfo", taskInfo)
 	Mux.HandleFunc("/cmdInfo", cmdInfo)
 	Mux.HandleFunc("/loop", loop)
+	Mux.HandleFunc("/stopTask", stopTask)
+	Mux.HandleFunc("/removeTask", removeTask)
 }
 
 func addTask(w http.ResponseWriter, r *http.Request) {
@@ -31,6 +36,7 @@ func addTask(w http.ResponseWriter, r *http.Request) {
 
 	err := server.AddTask(r.Body, ip)
 	if err != nil {
+		fmt.Println(err.Error())
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
@@ -55,6 +61,32 @@ func cmdInfo(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
-func loop(w http.ResponseWriter, r *http.Request) {
+func stopTask(w http.ResponseWriter, r *http.Request) {
+	id := util.Atoi(r.Body)
+	if id == 0 {
+		http.Error(w, "ID获取失败", http.StatusBadRequest)
+		return
+	}
+	server.StopTask(com.Interrupt, id)
+}
 
+func removeTask(w http.ResponseWriter, r *http.Request) {
+	id := util.Atoi(r.Body)
+	if id == 0 {
+		http.Error(w, "ID获取失败", http.StatusBadRequest)
+		return
+	}
+	server.StopTask(com.Stop, id)
+}
+
+func loop(w http.ResponseWriter, r *http.Request) {
+	id := util.Atoi(r.Body)
+	isTarget := server.IsTargetTask(id)
+	fmt.Println("chaxun: ", isTarget)
+
+	code := http.StatusOK
+	if isTarget {
+		code = http.StatusProcessing
+	}
+	w.WriteHeader(code)
 }

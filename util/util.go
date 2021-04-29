@@ -1,7 +1,10 @@
 package util
 
 import (
+	"fmt"
+	"io"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -9,6 +12,20 @@ func ErrCheck(err error) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func Atoi(reader io.Reader) (id int) {
+	data, err := io.ReadAll(reader)
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+	id, err = strconv.Atoi(string(data))
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+	return id
 }
 
 func CatchBranchs(data []byte) (info [][]string) {
@@ -24,7 +41,7 @@ func CatchBranchs(data []byte) (info [][]string) {
 		res := reg.FindAllString(s, 2)
 		if len(res) == 2 {
 			for i := range res {
-				strings.Trim(res[i], `"`)
+				res[i] = strings.Trim(res[i], `"`)
 			}
 			info = append(info, res)
 		}

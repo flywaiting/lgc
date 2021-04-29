@@ -1,0 +1,37 @@
+
+.button {
+    /* display: inline-block; */
+    margin: 5px 10px 20px;
+}
+
+.cmdInfo {
+    display: flex;
+    /* margin: 5px 10px; */
+}
+
+.cmdItem {
+    display: inline-flex;
+    flex-direction: column;
+    margin: 5px 10px;
+}
+
+.list {
+    padding: 6px;
+}
+
+.odd {
+    background: #dfe6e9;
+}
+
+.tip {
+    color: #0984e3;
+}
+.succ {
+    color: #2ecc71;
+}
+.warn {
+    color: #e67e22;
+}
+.err {
+    color: #e74c3c;
+}

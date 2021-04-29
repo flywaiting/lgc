@@ -1,7 +1,6 @@
 package com
 
 import (
-	_ "embed"
 	"encoding/json"
 	"fmt"
 	"lgc/util"
@@ -14,12 +13,14 @@ type cfg struct {
 	Db       string   `json:"db"`
 	WkDir    string   `json:"workDir"`
 	Root     string   `json:"root"`
+	Pattern  []string `json:"pattern"`
 	SufTasks []string `json:"sufTasks"`
 }
 
 type cmd struct {
-	branchs [][]string
-	teams   []string
+	Teams   []string   `json:"teams"`
+	Pattern []string   `json:"patterns"`
+	Branchs [][]string `json:"branchs"`
 }
 
 // 配置相关信息
@@ -28,15 +29,9 @@ var (
 	cmdInfo *cmd
 )
 
-//go:embed cfg/cfg.json
-var cfgBytes []byte
-
-//go:embed cfg/sql.sql
-var SqlStr string
-
-func init() {
+func InitCom(data *[]byte) {
 	cfgInfo = &cfg{}
-	err := json.Unmarshal(cfgBytes, cfgInfo)
+	err := json.Unmarshal(*data, cfgInfo)
 	util.ErrCheck(err)
 
 	loadConf()
@@ -45,17 +40,18 @@ func init() {
 	cfgInfo.Db = path.Join(cfgInfo.Root, cfgInfo.Db)
 
 	for _, dir := range []string{cfgInfo.Log, cfgInfo.Db} {
-		if _, err = os.Stat(dir); os.IsNotExist(err) {
-			// os.Mkdir(logDir, os.ModeDir)
-			err = os.MkdirAll(dir, 0755)
-			util.ErrCheck(err)
-		}
+		os.RemoveAll(dir)
+		err = os.MkdirAll(dir, 0755)
+		util.ErrCheck(err)
+		// if _, err = os.Stat(dir); os.IsNotExist(err) {
+		// 	// os.Mkdir(logDir, os.ModeDir)
+		// }
 	}
 }
 
 func loadConf() {
 	fn := "cfg.json"
-	if _, err := os.Stat(fn); os.IsNotExist(err) {
+	if _, err := os.Stat(fn); !os.IsNotExist(err) {
 		data, err := os.ReadFile(fn)
 		util.ErrCheck(err)
 		err = json.Unmarshal(data, cfgInfo)
@@ -87,10 +83,10 @@ func CmdInfo(refresh bool) (data []byte, err error) {
 		if err != nil {
 			return nil, err
 		}
-
 		cmdInfo = &cmd{
-			branchs: util.CatchBranchs(bytes),
-			teams:   util.CatchTeams(bytes),
+			Branchs: util.CatchBranchs(bytes),
+			Teams:   util.CatchTeams(bytes),
+			Pattern: cfgInfo.Pattern,
 		}
 	}
 

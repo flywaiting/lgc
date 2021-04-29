@@ -2,21 +2,123 @@
 
 const app = new Vue({
     el: '#app',
-    data: {},
+    data: {
+        cmdInfo: {},
+        createInfo: {},
+        taskInfo: {},
+
+        curTask: "",
+    },
 
     methods: {
+        getCmdInfo(refresh) {
+            let self = this;
+            let method = refresh ? "POST" : "GET";
+            
+            let ajax = getAjax("/cmdInfo", method);
+            ajax.onload = () => {
+                // console.log(ajax.response);
+                if (ajax.status != 200) {
+                    console.error(ajax.response);
+                    return
+                }
+                self.cmdInfo = ajax.response
+            }
+
+            ajax.send("1");
+        },
+        upTaskInfo() {
+            let self = this;
+            let ajax = getAjax("/taskInfo");
+            ajax.onload = () => {
+                self.curTask = "";
+                if (ajax.status != 200) {
+                    console.error(ajax.response);
+                    return;
+                }
+                self.taskInfo = ajax.response;
+                let cur = self.taskInfo.cur;
+                self.curTask = cur && `${cur.ip}: ${cur.pattern}:: ${cur.branch}=>${cur.team}}`;
+                cur && self.loop()
+            }
+            ajax.send()
+        },
         addTask() {
-            let ajax = new XMLHttpRequest()
-            ajax.open("POST", "/addTask");
+            let self = this;
+            let info = self.createInfo;
+            if (Object.keys(info).length != 3) {
+                alert("信息不全");
+                return;
+            }
+
+            let ajax = getAjax("/addTask");
             ajax.onload = () => {
                 if (ajax.status != 200) {
                     alert("添加失败");
                     return;
                 }
-                console.log(ajax);
+                // console.log(ajax);
+                self.upTaskInfo()
             }
 
-            ajax.send(null)
+            ajax.send(JSON.stringify(info));
         },
+        stopTask(id, url="/removeTask") {
+            let self = this;
+            if (!id && self.taskInfo.cur) {
+                id = self.taskInfo.cur.id;
+                url = "/stopTask";
+            }
+            if (!id) {
+                alert("无任务ID");
+                return;
+            }
+
+            let ajax = getAjax(url)
+            ajax.onload = () => {
+                self.upTaskInfo();
+            };
+            ajax.send(id);
+        },
+        loop() {
+            let self = this;
+            let id = self.taskInfo.cur.id;
+            console.log("loop", id);
+            let ajax = getAjax("/loop");
+            ajax.onload = () => {
+                let done = ajax.status == 200;
+                if (done) {
+                    self.upTaskInfo();
+                    return;
+                }
+                self.loop();
+            };
+            setTimeout(() => {
+                ajax.send(id);
+            }, 3e3);
+        },
+
+        getStateClass(state) {
+            return {
+                succ: state == 2,
+                warn: state == 3,
+                err: state == 4
+            }
+        },
+        getState(state) {
+            return ["完成", "移除", "中断"][state - 2];
+        }
     }
-})
+});
+
+function getAjax(url, method = "POST") {
+    let ajax = new XMLHttpRequest();
+    ajax.open(method, url);
+    ajax.responseType = "json";
+    return ajax;
+}
+
+window.onload = () => {
+    app.getCmdInfo(false)
+    app.upTaskInfo()
+}

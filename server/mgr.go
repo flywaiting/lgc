@@ -45,7 +45,6 @@ func AddTask(reader io.Reader, ip string) (err error) {
 	mgrMutex.Lock()
 	defer mgrMutex.Unlock()
 
-	// info := &addInfo{}
 	t := &Task{}
 	err = json.Unmarshal(data, t)
 	if err != nil {
@@ -103,5 +102,12 @@ func TaskInfo() (data []byte, err error) {
 	info.Done = doneList()
 
 	data, err = json.Marshal(info)
+	// fmt.Println(info)
+	// fmt.Println(string(data))
 	return
+}
+
+func IsTargetTask(id int) bool {
+	t := mgr.task
+	return t != nil && t.ID == id
 }

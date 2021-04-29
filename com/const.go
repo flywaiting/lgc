@@ -1,11 +1,15 @@
 package com
 
+import "runtime"
+
 const (
 	Ready = iota
 	Running
 	Succ
-	// 异常中断
-	Interrupt
 	// 主动停止
 	Stop
+	// 异常中断
+	Interrupt
 )
+
+const OS = runtime.GOOS
