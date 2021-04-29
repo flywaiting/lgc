@@ -6,10 +6,12 @@ const (
 	Ready = iota
 	Running
 	Succ
-	// 主动停止
-	Stop
+	// 移除
+	Remove
 	// 异常中断
 	Interrupt
+	// 主动停止
+	Kill
 )
 
 const OS = runtime.GOOS

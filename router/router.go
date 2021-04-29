@@ -67,7 +67,7 @@ func stopTask(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "ID获取失败", http.StatusBadRequest)
 		return
 	}
-	server.StopTask(com.Interrupt, id)
+	server.StopTask(com.Kill, id)
 }
 
 func removeTask(w http.ResponseWriter, r *http.Request) {
@@ -76,17 +76,16 @@ func removeTask(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "ID获取失败", http.StatusBadRequest)
 		return
 	}
-	server.StopTask(com.Stop, id)
+	server.StopTask(com.Remove, id)
 }
 
 func loop(w http.ResponseWriter, r *http.Request) {
 	id := util.Atoi(r.Body)
-	isTarget := server.IsTargetTask(id)
-	fmt.Println("chaxun: ", isTarget)
+	ing := server.IsRunning(id)
 
 	code := http.StatusOK
-	if isTarget {
-		code = http.StatusProcessing
+	if ing {
+		code = http.StatusAccepted
 	}
 	w.WriteHeader(code)
 }

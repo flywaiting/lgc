@@ -45,7 +45,7 @@
         <div class="runningTask">
             <h2>当前运行任务</h2>
             <span>{{ curTask || "none" }}</span>
-            <button @click="stopTask" v-show="curTask">stop</button>
+            <button @click="stopTask(0)" v-show="curTask">stop</button>
         </div>
         <hr>
 

@@ -107,7 +107,7 @@ func TaskInfo() (data []byte, err error) {
 	return
 }
 
-func IsTargetTask(id int) bool {
+func IsRunning(id int) bool {
 	t := mgr.task
 	return t != nil && t.ID == id
 }

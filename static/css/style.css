@@ -29,9 +29,12 @@
 .succ {
     color: #2ecc71;
 }
-.warn {
+.remove {
     color: #e67e22;
 }
-.err {
+.inter {
     color: #e74c3c;
+}
+.kill {
+    color: #6c5ce7;
 }

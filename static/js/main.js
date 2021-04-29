@@ -8,6 +8,7 @@ const app = new Vue({
         taskInfo: {},
 
         curTask: "",
+        loopFlag: false,
     },
 
     methods: {
@@ -39,7 +40,7 @@ const app = new Vue({
                 self.taskInfo = ajax.response;
                 let cur = self.taskInfo.cur;
                 self.curTask = cur && `${cur.ip}: ${cur.pattern}:: ${cur.branch}=>${cur.team}}`;
-                cur && self.loop()
+                cur && self.loop();
             }
             ajax.send()
         },
@@ -57,7 +58,6 @@ const app = new Vue({
                     alert("添加失败");
                     return;
                 }
-                // console.log(ajax);
                 self.upTaskInfo()
             }
 
@@ -83,15 +83,17 @@ const app = new Vue({
         loop() {
             let self = this;
             let id = self.taskInfo.cur.id;
+            if (self.loopFlag) return;
+            
+            self.loopFlag = true;
             console.log("loop", id);
             let ajax = getAjax("/loop");
             ajax.onload = () => {
+                self.loopFlag = false;
+
                 let done = ajax.status == 200;
-                if (done) {
-                    self.upTaskInfo();
-                    return;
-                }
-                self.loop();
+                done ? self.upTaskInfo() : self.loop();
+                console.log(done);
             };
             setTimeout(() => {
                 ajax.send(id);
@@ -101,12 +103,13 @@ const app = new Vue({
         getStateClass(state) {
             return {
                 succ: state == 2,
-                warn: state == 3,
-                err: state == 4
+                remove: state == 3,
+                inter: state == 4,
+                kill: state == 5
             }
         },
         getState(state) {
-            return ["完成", "移除", "中断"][state - 2];
+            return ["完成", "移除", "异常", "中断"][state - 2];
         }
     }
 });
