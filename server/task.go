@@ -40,9 +40,7 @@ func (t *Task) run() {
 	}
 	defer log.Close()
 
-	// tasks := []string{fmt.Sprintf("mo t %s --%s@%s", t.Pattern, t.Team, t.Branch)}
-	// tasks := []string{"sleep 5"}
-	tasks := []string{"dir"}
+	tasks := []string{fmt.Sprintf("mo t %s ---%s@%s", t.Pattern, t.Team, t.Branch)}
 	tasks = append(tasks, com.SufTask()...)
 	for _, v := range tasks {
 		if t.State != com.Running {
@@ -64,7 +62,9 @@ func (t *Task) run() {
 		err = cmd.Run()
 		if err != nil {
 			fmt.Println("running:", err.Error())
-			StopTask(com.Interrupt, t.ID)
+			if t.State < com.Succ {
+				StopTask(com.Interrupt, t.ID)
+			}
 			return
 		}
 

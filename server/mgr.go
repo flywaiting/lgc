@@ -20,12 +20,6 @@ type taskInfo struct {
 	Done []*Task `json:"done"`
 }
 
-// type addInfo struct {
-// 	Pattern string `json:"pattern"`
-// 	Team    string `json:"team"`
-// 	Branch  string `json:"branch"`
-// }
-
 var (
 	mgr      *taskMgr
 	mgrMutex sync.RWMutex
@@ -102,8 +96,6 @@ func TaskInfo() (data []byte, err error) {
 	info.Done = doneList()
 
 	data, err = json.Marshal(info)
-	// fmt.Println(info)
-	// fmt.Println(string(data))
 	return
 }
 

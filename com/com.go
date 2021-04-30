@@ -50,7 +50,7 @@ func InitCom(data *[]byte) {
 }
 
 func loadConf() {
-	fn := "cfg.json"
+	fn := path.Join(cfgInfo.WkDir, "cfg.json")
 	if _, err := os.Stat(fn); !os.IsNotExist(err) {
 		data, err := os.ReadFile(fn)
 		util.ErrCheck(err)
