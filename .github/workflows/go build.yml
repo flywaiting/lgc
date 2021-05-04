@@ -1,0 +1,27 @@
+name: go build
+
+on: [push]
+
+jobs:
+  build_go:
+    name: build go
+    runs-on: macos-latest
+
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v2
+
+      - name: set up env
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.16
+
+      - name: build
+        run: go build
+
+      - name: archive production artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: lgc-v0.1.${{ github.run_number }}
+          path: lgc
+
