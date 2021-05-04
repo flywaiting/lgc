@@ -17,11 +17,12 @@ jobs:
           go-version: 1.16
 
       - name: build
-        run: go build
+        run: go build -v ./...
 
       - name: archive production artifact
         uses: actions/upload-artifact@v2
         with:
-          name: lgc-v0.1.${{ github.run_number }}
+          retention-days: 5   # 保存时间
+          name: lgc-${{ runner.os }}-v0.1.${{ github.run_number }}
           path: lgc
 
