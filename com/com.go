@@ -3,6 +3,7 @@ package com
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"lgc/util"
 	"os"
 	"path"
@@ -52,7 +53,7 @@ func InitCom() {
 func loadConf() {
 	fn := path.Join(cfgInfo.WkDir, "cfg.json")
 	if _, err := os.Stat(fn); !os.IsNotExist(err) {
-		data, err := os.ReadFile(fn)
+		data, err := ioutil.ReadFile(fn)
 		util.ErrCheck(err)
 		err = json.Unmarshal(data, cfgInfo)
 		util.ErrCheck(err)
@@ -79,7 +80,7 @@ func WkDir() string {
 func CmdInfo(refresh bool) (data []byte, err error) {
 	if refresh || cmdInfo == nil {
 		fn := ".mo.env.js"
-		bytes, err := os.ReadFile(path.Join(cfgInfo.WkDir, fn))
+		bytes, err := ioutil.ReadFile(path.Join(cfgInfo.WkDir, fn))
 		if err != nil {
 			return nil, err
 		}
