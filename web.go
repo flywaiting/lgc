@@ -1,7 +1,6 @@
 package main
 
 import (
-	"embed"
 	"fmt"
 	"lgc/com"
 	"lgc/router"
@@ -9,19 +8,19 @@ import (
 	"net/http"
 )
 
-var (
-	//go:embed cfg/cfg.json
-	cfg []byte
-	//go:embed cfg/sql.sql
-	sql string
-	//go:embed static
-	static embed.FS
-)
+// var (
+// 	//go:embed cfg/cfg.json
+// 	cfg []byte
+// 	//go:embed cfg/sql.sql
+// 	sql string
+// 	//go:embed static
+// 	static embed.FS
+// )
 
 func init() {
-	router.InitRouter(&static)
-	com.InitCom(&cfg)
-	server.InitDB(sql)
+	router.InitRouter()
+	com.InitCom()
+	server.InitDB()
 }
 
 func main() {

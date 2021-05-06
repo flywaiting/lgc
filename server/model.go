@@ -16,12 +16,12 @@ var (
 	dbMutex sync.RWMutex
 )
 
-func InitDB(sqlStr string) {
+func InitDB() {
 	db, err := sql.Open("sqlite3", com.DbPath())
 	util.ErrCheck(err)
 	DB = db
 
-	_, err = db.Exec(sqlStr)
+	_, err = db.Exec(com.SqlStr)
 	util.ErrCheck(err)
 }
 

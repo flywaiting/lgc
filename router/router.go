@@ -1,9 +1,7 @@
 package router
 
 import (
-	"embed"
 	"fmt"
-	"io/fs"
 	"lgc/com"
 	"lgc/server"
 	"lgc/util"
@@ -15,12 +13,13 @@ var (
 	Mux *http.ServeMux
 )
 
-func InitRouter(static *embed.FS) {
+func InitRouter() {
 	Mux = http.NewServeMux()
 
-	fsys, err := fs.Sub(static, "static")
-	util.ErrCheck(err)
-	Mux.Handle("/lgc/", http.StripPrefix("/lgc/", http.FileServer(http.FS(fsys))))
+	// fsys, err := fs.Sub(static, "static")
+	// util.ErrCheck(err)
+	// Mux.Handle("/lgc/", http.StripPrefix("/lgc/", http.FileServer(http.FS(fsys))))
+	Mux.Handle("/lgc/", http.StripPrefix("/lgc/", http.FileServer(http.Dir("static"))))
 	Mux.HandleFunc("/addTask", addTask)
 	Mux.HandleFunc("/taskInfo", taskInfo)
 	Mux.HandleFunc("/cmdInfo", cmdInfo)

@@ -29,9 +29,9 @@ var (
 	cmdInfo *cmd
 )
 
-func InitCom(data *[]byte) {
+func InitCom() {
 	cfgInfo = &cfg{}
-	err := json.Unmarshal(*data, cfgInfo)
+	err := json.Unmarshal([]byte(CfgStr), cfgInfo)
 	util.ErrCheck(err)
 
 	loadConf()
