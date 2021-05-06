@@ -3,6 +3,7 @@ package util
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"regexp"
 	"strconv"
 	"strings"
@@ -15,7 +16,7 @@ func ErrCheck(err error) {
 }
 
 func Atoi(reader io.Reader) (id int) {
-	data, err := io.ReadAll(reader)
+	data, err := ioutil.ReadAll(reader)
 	if err != nil {
 		fmt.Println(err.Error())
 		return

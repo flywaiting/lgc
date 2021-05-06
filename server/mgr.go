@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"sync"
 )
 
@@ -31,7 +32,7 @@ func init() {
 }
 
 func AddTask(reader io.Reader, ip string) (err error) {
-	data, err := io.ReadAll(reader)
+	data, err := ioutil.ReadAll(reader)
 	if err != nil {
 		return
 	}
