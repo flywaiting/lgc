@@ -23,7 +23,8 @@ const app = new Vue({
                     console.error(ajax.response);
                     return
                 }
-                self.cmdInfo = ajax.response
+                self.cmdInfo = ajax.response;
+                (self.cmdInfo.branchs || []).reverse();
             }
 
             ajax.send("1");
