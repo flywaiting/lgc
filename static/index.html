@@ -4,79 +4,9 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>lgc</title>
-
-    <link rel="stylesheet" href="css/style.css">
-    <link rel="icon" href="data:;base64,=">
+    <title>Leng</title>
 </head>
 <body>
-    
-    <div id="app">
-        <h1>LGC</h1>
-        <hr>
-
-        <div class="createTask">
-            <h2>添加任务</h2>
-            <button class="button" title="获取新增分支信息" @click="getCmdInfo(true)">refresh</button>
-            <button class="button" @click="addTask">add</button>
-
-            <div class="cmdInfo">
-                <div class="cmdItem">
-                    <label for="pattern">pattern</label>
-                    <select name="pattern" id="pattern" v-model="createInfo.pattern">
-                        <option v-for="pattern in cmdInfo.patterns" :value="pattern">{{pattern}}</option>
-                    </select>
-                </div>
-                <div class="cmdItem">
-                    <label for="team">team</label>
-                    <select name="team" id="team" v-model="createInfo.team">
-                        <option v-for="team in cmdInfo.teams" :value="team">{{team}}</option>
-                    </select>
-                </div>
-                <div class="cmdItem">
-                    <label for="branch">branch</label>
-                    <select name="branch" id="branch" v-model="createInfo.branch">
-                        <option v-for="branch in cmdInfo.branchs" :value="branch[0]">{{branch[1]}}</option>
-                    </select>
-                </div>
-            </div>
-        </div>
-        <hr>
-
-        <div class="runningTask">
-            <h2>当前运行任务</h2>
-            <span>{{ curTask || "none" }}</span>
-            <button @click="stopTask(0)" v-show="curTask">stop</button>
-        </div>
-        <hr>
-
-        <div class="todo">
-            <h3>todo list</h3>
-            <div class="list" v-for="item in taskInfo.todo" :class="{'odd':item.id%2==1}">
-                <span>{{ `${item.ip}:`}}</span>
-                <span class="tip">{{`${item.pattern}:: ${item.branch}=>${item.team}`}}</span>
-                <span> {{`[${item.CT}]`}}</span>
-                <button @click="stopTask(item.id)" title="移除任务">remove</button>
-            </div>
-            <span v-show="!taskInfo.todo || !taskInfo.todo.length ">none</span>
-        </div>
-        <hr>
-
-        <div class="done">
-            <h3>done</h3>
-            <div class="list" v-for="item in taskInfo.done" :class="{'odd':item.id%2==1}">
-                <span>{{ `${item.ip}:`}}</span>
-                <span class="tip">{{`${item.pattern}:: ${item.branch}=>${item.team}`}}</span>
-                <span> {{`[${item.ET}]`}}</span>
-                <span :class="getStateClass(item.state)">{{getState(item.state)}}</span>
-            </div>
-            <span v-show="!taskInfo.done || !taskInfo.done.length ">none</span>
-        </div>
-
-        <!-- <button @click="addTask">add task</button> -->
-    </div>
-    
-    <script src="./js/vue.min.js"></script>
-    <script src="./js/main.js"></script>
+    <h1>LGC</h1>
 </body>
 </html>

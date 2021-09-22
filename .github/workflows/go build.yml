@@ -1,6 +1,6 @@
 name: go build
 
-on: [push]
+# on: [push]
 
 jobs:
   build_go:
