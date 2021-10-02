@@ -4,7 +4,9 @@ import (
 
 	// _ "github.com/mattn/go-sqlite3"
 
-	_ "lgc/router"
+	"fmt"
+	"lgc/cfg"
+	// _ "lgc/router"
 )
 
 func main() {
@@ -12,4 +14,6 @@ func main() {
 
 	// engine.StaticFS("/", gin.Dir("./static", true))
 	// engine.Run(":6464")
+
+	fmt.Printf("%v\n", cfg.Cfg())
 }

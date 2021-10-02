@@ -18,6 +18,7 @@ func init() {
 	go handleTask()
 }
 
+// gorountine for task running
 func handleTask() {
 	for t := range taskChan {
 		if t.Status == 0 {
