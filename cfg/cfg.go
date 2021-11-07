@@ -23,7 +23,6 @@ func Cfg() map[string]interface{} {
 
 		decoder := json.NewDecoder(f)
 		decoder.Decode(&cfg)
-		fmt.Println("parse")
 	})
 
 	fmt.Printf("cfg: %v\n", cfg)
