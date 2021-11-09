@@ -16,14 +16,16 @@ type Task struct {
 	Rname  string
 	Cmds   string
 	cancel context.CancelFunc
+
+	nxt *Task
 }
 
 var tm sync.Mutex
 
 // 新建任务
 func NewTask() {
-	if len(taskChan) >= 5 {
-
+	if que.size >= limit {
+		return
 	}
 
 	t := &Task{}
@@ -33,11 +35,11 @@ func NewTask() {
 
 // 取消任务
 func CancelTask(tId int) {
-	// if curTask == nil || curTask.Id != tId {
-	// 	// todo	无效的取消
-	// }
-
-	// done(0)
+	t := que.find(tId)
+	if t == nil {
+		return
+	}
+	done(t, util.Cancel)
 }
 
 // 任务列表
@@ -48,11 +50,13 @@ func TaskList() {
 // type Task struct{}
 
 var taskChan chan *Task
+var que *queTask
 
 // var curTask *Task
 
 func TaskInit(ctx context.Context) {
-	taskChan = make(chan *Task, 5)
+	taskChan = make(chan *Task, limit)
+	que = NewQue()
 	go shedule(ctx)
 }
 
@@ -64,7 +68,7 @@ func shedule(ctx context.Context) {
 			run(ctx, t)
 		case <-ctx.Done():
 			close(taskChan)
-			break
+			return
 		}
 	}
 }
@@ -78,9 +82,11 @@ func run(ctx context.Context, t *Task) {
 	// todo	输出设置
 	err := cmd.Run()
 
-	status := 1
+	var status int
 	if err != nil {
-		status = 2
+		status = util.Wrong
+	} else {
+		status = util.Done
 	}
 	done(t, status)
 }
@@ -89,7 +95,7 @@ func done(t *Task, status int) {
 	tm.Lock()
 	defer tm.Unlock()
 
-	if t == nil || t.Status != 0 {
+	if t == nil || t.Status != util.Ready {
 		return
 	}
 
