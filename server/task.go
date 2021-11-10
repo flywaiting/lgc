@@ -47,12 +47,8 @@ func TaskList() {
 
 }
 
-// type Task struct{}
-
 var taskChan chan *Task
 var que *queTask
-
-// var curTask *Task
 
 func TaskInit(ctx context.Context) {
 	taskChan = make(chan *Task, limit)
