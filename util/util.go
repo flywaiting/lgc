@@ -1,7 +1,9 @@
 package util
 
 import (
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -11,7 +13,7 @@ func Tsp() int64 {
 	return time.Now().Unix()
 }
 
-// 获取指定 repo 的所有分支
+// Branchs 获取指定 repo 的所有分支
 func Branchs(dir string) ([]string, error) {
 	// 更新仓库
 	upCmd := exec.Command("bash", "-c", "git pull")
@@ -27,11 +29,26 @@ func Branchs(dir string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	arr := []string{}
+	var arr []string
 	for _, s := range strings.Split(string(out), "\n") {
 		if len(s) > 0 && !strings.Contains(s, "HEAD") {
 			arr = append(arr, strings.TrimPrefix(strings.TrimSpace(s), "origin/"))
 		}
 	}
 	return arr, nil
+}
+
+func InferRootDir(d string) string {
+	pwd, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+	for pwd != "/" {
+		if _, err := os.Stat(pwd + d); err == nil || os.IsExist(err) {
+			return pwd
+		} else {
+			pwd = filepath.Dir(pwd)
+		}
+	}
+	return ""
 }
