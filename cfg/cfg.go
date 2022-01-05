@@ -29,3 +29,7 @@ func Cfg() map[string]interface{} {
 
 	return cfg
 }
+
+func init() {
+
+}

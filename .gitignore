@@ -4,3 +4,5 @@ log
 .mo.env.js
 lgc
 .idea
+*.mod
+*.sum
