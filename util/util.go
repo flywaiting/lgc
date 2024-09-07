@@ -4,10 +4,51 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
 )
+
+// 获取仓库分支列表
+func BranchList(path string) ([]string, error) {
+	// 记录工作环境 完成分支抓取之后进行还原
+	pwd, err := os.Getwd()
+	if err != nil {
+		return nil, err
+	}
+	absPwd, err := filepath.Abs(pwd)
+	if err != nil {
+		return nil, err
+	}
+	defer os.Chdir(absPwd)
+
+	err = os.Chdir(path)
+	if err != nil {
+		return nil, err
+	}
+
+	cmd := exec.Command("git", "branch", "-r")
+	output, err := cmd.Output()
+	if err != nil {
+		return nil, err
+	}
+
+	branches := strings.Split(strings.TrimSpace(string(output)), "\n")
+	var res []string
+	for _, branch := range branches {
+		if strings.Contains(branch, "HEAD") {
+			continue
+		}
+		arr := strings.Split(strings.TrimSpace(branch), "/")
+		if len(arr) > 1 {
+			res = append(res, arr[1])
+		}
+	}
+	return res, nil
+}
 
 func ErrCheck(err error) {
 	if err != nil {
