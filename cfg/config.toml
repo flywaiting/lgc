@@ -1,0 +1,12 @@
+[git]
+# 用于抓取 git 分支列表的仓库
+tmpRepository = "."
+apply = [
+    ["git", "add", "-A"],
+    ["git", "commit", "-m", "apply"],
+    ["git", "push"]
+]
+
+[product]
+teams = ["team1", "team2", "team3", "team4", "team9"]
+pattern = ["product", "client-product", "server-product"]

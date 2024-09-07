@@ -7,6 +7,8 @@ import (
 	"lgc/util"
 	"net/http"
 	"strings"
+
+	"github.com/gorilla/websocket"
 )
 
 var (
@@ -26,6 +28,23 @@ func InitRouter() {
 	Mux.HandleFunc("/loop", loop)
 	Mux.HandleFunc("/stopTask", stopTask)
 	Mux.HandleFunc("/removeTask", removeTask)
+}
+
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool {
+		// 允许所有跨域请求
+		return true
+	},
+}
+
+func handleWebSocket(w http.ResponseWriter, r *http.Request) {
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		http.Error(w, "websocket 连接失败", http.StatusBadRequest)
+		return
+	}
+
+	server.NewWS(*conn)
 }
 
 func addTask(w http.ResponseWriter, r *http.Request) {
