@@ -1,30 +1,34 @@
 package server
 
-import "github.com/gorilla/websocket"
+import (
+	"encoding/json"
+
+	"github.com/gorilla/websocket"
+)
 
 type Client struct {
 	conn *websocket.Conn
 	send chan []byte
 }
 
-func (c *Client) readPump(h *Hub) {
-	defer func() {
-		h.unregister <- c
-		c.conn.Close()
-	}()
+type Message struct {
+	Msg string `json:"msg"`
+}
+
+func (c *Client) readPump() {
+	defer CloseClient(c)
 
 	for {
 		_, message, err := c.conn.ReadMessage()
 		if err != nil {
 			break
 		}
-		// h.broadcast <- message
-		// todo	消息相关处理
+		RequestHandle(c, message)
 	}
 }
 
 func (c *Client) writePump() {
-	defer c.conn.Close()
+	defer CloseClient(c)
 
 	for {
 		select {
@@ -38,4 +42,21 @@ func (c *Client) writePump() {
 			}
 		}
 	}
+}
+
+func (c *Client) ResponseMsg(s string) {
+	info := Message{
+		Msg: s,
+	}
+	if msg, err := json.Marshal(info); err == nil {
+		c.send <- msg
+	}
+}
+
+func (c *Client) ResponseInfo(info interface{}) {
+	rsp, err := json.Marshal(info)
+	if err != nil {
+		return
+	}
+	c.send <- rsp
 }

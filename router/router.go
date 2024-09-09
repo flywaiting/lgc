@@ -22,6 +22,7 @@ func InitRouter() {
 	// util.ErrCheck(err)
 	// Mux.Handle("/lgc/", http.StripPrefix("/lgc/", http.FileServer(http.FS(fsys))))
 	Mux.Handle("/lgc/", http.StripPrefix("/lgc/", http.FileServer(http.Dir("static"))))
+	Mux.HandleFunc("/ws", handleWebSocket)
 	Mux.HandleFunc("/addTask", addTask)
 	Mux.HandleFunc("/taskInfo", taskInfo)
 	Mux.HandleFunc("/cmdInfo", cmdInfo)
@@ -44,7 +45,7 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	server.NewWS(*conn)
+	server.NewWS(conn)
 }
 
 func addTask(w http.ResponseWriter, r *http.Request) {

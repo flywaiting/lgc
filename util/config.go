@@ -12,15 +12,16 @@ type GitConfig struct {
 	Apply         [][]string `toml:"apply"`
 }
 type PorductConfig struct {
-	Teams   []string `toml:"teams"`
-	Pattern []string `toml:"pattern"`
+	Teams      []string `toml:"teams"`
+	Pattern    []string `toml:"pattern"`
+	InsertFlag string   `toml:"insertFlag"`
 }
 
-func InitConfig() (config Config) {
-	// var
+func InitConfig() *Config {
+	var config Config
 	if _, err := toml.DecodeFile("config.toml", &config); err != nil {
 		panic("配置文件解析错误")
 	}
 
-	return
+	return &config
 }

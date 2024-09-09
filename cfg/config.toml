@@ -10,3 +10,4 @@ apply = [
 [product]
 teams = ["team1", "team2", "team3", "team4", "team9"]
 pattern = ["product", "client-product", "server-product"]
+insertFlag =  "// 这是插入标记"

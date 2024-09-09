@@ -50,6 +50,10 @@ func BranchList(path string) ([]string, error) {
 	return res, nil
 }
 
+func FormatMessage(s string) {
+
+}
+
 func ErrCheck(err error) {
 	if err != nil {
 		panic(err)
