@@ -45,7 +45,7 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	server.NewWS(conn)
+	server.ServerWs(conn)
 }
 
 func addTask(w http.ResponseWriter, r *http.Request) {

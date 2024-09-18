@@ -1,6 +1,8 @@
 package util
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -50,8 +52,43 @@ func BranchList(path string) ([]string, error) {
 	return res, nil
 }
 
-func FormatMessage(s string) {
+func UpFile(config *PorductConfig, s string) error {
+	file := filepath.Join(config.Workspace, config.ConfigFile)
+	input, err := os.Open(file)
+	if err != nil {
+		return err
+	}
+	defer input.Close()
 
+	tmp := filepath.Join(config.Workspace, "tmp")
+	output, err := os.Create(tmp)
+	if err != nil {
+		return err
+	}
+	defer output.Close()
+
+	scanner := bufio.NewScanner(input)
+	writer := bufio.NewWriter(output)
+	for scanner.Scan() {
+		line := scanner.Bytes()
+		if bytes.ContainsAny(line, config.InsertFlag) {
+			if _, err := writer.WriteString(s + "\n"); err != nil {
+				return err
+			}
+		}
+		if _, err := writer.Write(line); err != nil {
+			return err
+		}
+	}
+	writer.Flush()
+
+	err = os.Rename(tmp, file)
+	return err
+}
+
+func GetLog(config *ServerConfig, id int) ([]byte, error) {
+	f := filepath.Join(config.Root, config.Log, fmt.Sprintf("%d.log", id))
+	return ioutil.ReadFile(f)
 }
 
 func ErrCheck(err error) {

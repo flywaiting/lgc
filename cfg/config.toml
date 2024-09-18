@@ -1,6 +1,5 @@
 [git]
-# 用于抓取 git 分支列表的仓库
-tmpRepository = "."
+tmpRepository = "." # 用于抓取 git 分支列表的仓库
 apply = [
     ["git", "add", "-A"],
     ["git", "commit", "-m", "apply"],
@@ -11,3 +10,9 @@ apply = [
 teams = ["team1", "team2", "team3", "team4", "team9"]
 pattern = ["product", "client-product", "server-product"]
 insertFlag =  "// 这是插入标记"
+workspace = "."
+configFile = "cfg.js"
+
+[server]
+log = "log" # 日志目录
+root = "."

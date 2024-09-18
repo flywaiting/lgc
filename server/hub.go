@@ -6,6 +6,7 @@ type Hub struct {
 	clients    map[*Client]bool
 	register   chan *Client
 	unregister chan *Client
+	request    chan *Client
 	broadcast  chan []byte
 }
 
@@ -19,6 +20,8 @@ func (h *Hub) run() {
 				delete(h.clients, client)
 				close(client.send)
 			}
+		case client := <-h.request:
+			handler(client)
 		case message := <-h.broadcast:
 			for client := range h.clients {
 				select {
@@ -32,8 +35,8 @@ func (h *Hub) run() {
 	}
 }
 
-func (h *Hub) response(info interface{}) {
-	rsp, err := json.Marshal(info)
+func (h *Hub) response(msg *SyncData) {
+	rsp, err := json.Marshal(msg)
 	if err != nil {
 		return
 	}

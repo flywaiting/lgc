@@ -1,16 +1,22 @@
 package server
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"lgc/util"
 	"regexp"
+	"sync"
 
 	"github.com/gorilla/websocket"
 )
 
 var hub *Hub
 var config *util.Config
-var teamMap map[string]string
+
+// var teamMap map[string]string
+var teamMap = sync.Map{}
+var task *TaskHub
 
 func init() {
 	hub = &Hub{
@@ -19,22 +25,29 @@ func init() {
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
 	}
+	task := &TaskHub{
+		Counter: 0,
+		item:    make(chan *TaskItem),
+		ctx:     context.Background(),
+	}
 	config = util.InitConfig()
-	teamMap = make(map[string]string, 0)
+	// teamMap = make(map[string]string, 0)
 
 	go hub.run()
+	go task.run()
 }
 
-func NewWS(ws *websocket.Conn) {
+func ServerWs(ws *websocket.Conn) {
 	client := &Client{
 		conn: ws,
 		send: make(chan []byte),
 	}
 
-	// todo 初始化
+	hub.register <- client
+	go client.readPump()
+	go client.writePump()
 
-	client.readPump()
-	client.writePump()
+	// todo 初始化
 }
 
 func CloseClient(c *Client) {
@@ -42,20 +55,40 @@ func CloseClient(c *Client) {
 	hub.unregister <- c
 }
 
-func RequestHandle(c *Client, message []byte) {
+func handler(c *Client) {
+	if c.msg == nil {
+		return
+	}
 
+	var sync SyncData
+	if err := json.Unmarshal(c.msg, &sync); err != nil {
+		c.ResponseMsg(Err, err.Error())
+		return
+	}
+
+	switch sync.Action {
+	case actTeam:
+		upTeam(sync.Team)
+	case actBranch:
+		upBranch(c, sync.Branch)
+	case actTask:
+		task.handler(c, sync.Item)
+	}
 }
 
-// 分支相关
 func upBranch(c *Client, b *Branches) {
+	if b == nil {
+		return
+	}
 	// 获取分支列表
 	if b.Branch == "" {
 		list, err := util.BranchList(config.Git.TmpRepository)
 		if err != nil {
+			c.ResponseMsg(Err, err.Error())
 			return
 		}
 		b.List = list
-		c.ResponseInfo(&Request{
+		c.ResponseInfo(&SyncData{
 			Branch: b,
 		})
 		return
@@ -64,7 +97,7 @@ func upBranch(c *Client, b *Branches) {
 	// 添加分支
 	matched, err := regexp.MatchString(`[a-zA-Z]`, b.Branch)
 	if err != nil {
-		c.ResponseMsg("分支正则匹配出错了")
+		c.ResponseMsg(Err, "分支正则匹配出错了")
 		return
 	}
 	if !matched {
@@ -72,31 +105,38 @@ func upBranch(c *Client, b *Branches) {
 	}
 
 	if b.Alias == "" {
-		c.ResponseMsg("分支需要个别名")
+		c.ResponseMsg(Err, "分支需要个别名")
 		return
 	}
 
 	// 分支记录模板
 	item := fmt.Sprintf(`"%s": {verIndex:1, branch:{common:"%s", client:"%s", server:"%s", art:"%s"}, },`, b.Alias, b.Branch, b.Branch, b.Branch, b.Branch)
-	// todo 将格式化的分支写入文件
-	fmt.Println(item)
+	err = util.UpFile(&config.Product, item)
+	if err != nil {
+		c.ResponseMsg(Err, err.Error())
+		return
+	}
 }
 
 func upTeam(team map[string]string) { // c *Client,
+	if team == nil {
+		return
+	}
 	for t, b := range team {
-		teamMap[t] = b
+		teamMap.Store(t, b)
 	}
 
-	hub.response(&Request{
-		Team: teamMap,
+	hub.response(&SyncData{
+		Team: team,
 	})
 }
 
-type Request struct {
+type SyncData struct {
 	Action int               `json:"action"`
 	Team   map[string]string `json:"team"`
 	Branch *Branches         `json:"branch"`
-	Task   Task              `json:"task"`
+	Task   *TaskHub          `json:"task"` // ->client, 任务相关信息
+	Item   *TaskItem         `json:"item"` // ->server, 任务操作
 }
 type Branches struct {
 	// server -> 当前所有分支
@@ -109,7 +149,7 @@ type Branches struct {
 
 const (
 	Init = iota
-	UpTeams
-	UpBranches
-	UpTasks
+	actTeam
+	actBranch
+	actTask
 )
