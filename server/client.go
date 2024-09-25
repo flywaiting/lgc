@@ -9,7 +9,7 @@ import (
 type Client struct {
 	conn *websocket.Conn
 	send chan []byte
-	msg  []byte
+	// msg  []byte
 }
 
 type Message struct {
@@ -32,8 +32,23 @@ func (c *Client) readPump() {
 		if err != nil {
 			break
 		}
-		c.msg = msg
-		hub.request <- c
+
+		if initConnect(c, msg) || getBranchList(c, msg) {
+			continue
+		}
+
+		var sync SyncData
+		if err := json.Unmarshal(msg, &sync); err != nil {
+			c.ResponseMsg(Err, err.Error())
+			continue
+		}
+		if upEnvConfig(c, sync.Branch) {
+			continue
+		}
+
+		// c.msg = msg
+		// hub.request <- c
+		hub.sync <- &sync
 	}
 }
 

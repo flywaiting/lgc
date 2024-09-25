@@ -6,8 +6,9 @@ type Hub struct {
 	clients    map[*Client]bool
 	register   chan *Client
 	unregister chan *Client
-	request    chan *Client
-	broadcast  chan []byte
+	// request    chan *Client
+	sync      chan *SyncData
+	broadcast chan []byte
 }
 
 func (h *Hub) run() {
@@ -20,8 +21,9 @@ func (h *Hub) run() {
 				delete(h.clients, client)
 				close(client.send)
 			}
-		case client := <-h.request:
-			handler(client)
+		// case client := <-h.request:
+		case sync := <-h.sync:
+			handler(sync)
 		case message := <-h.broadcast:
 			for client := range h.clients {
 				select {

@@ -2,9 +2,7 @@ package main
 
 import (
 	"fmt"
-	"lgc/com"
 	"lgc/router"
-	"lgc/server"
 	"net/http"
 )
 
@@ -19,8 +17,8 @@ import (
 
 func init() {
 	router.InitRouter()
-	com.InitCom()
-	server.InitDB()
+	// com.InitCom()
+	// server.InitDB()
 }
 
 func main() {

@@ -4,15 +4,15 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
-	"strconv"
 	"strings"
+	"sync"
 )
+
+var mux sync.RWMutex
 
 // 获取仓库分支列表
 func BranchList(path string) ([]string, error) {
@@ -52,7 +52,32 @@ func BranchList(path string) ([]string, error) {
 	return res, nil
 }
 
+// 检测配置文件是否存在 key 字符串
+func CheckKeyExist(c *PorductConfig, key string) bool {
+	mux.RLock()
+	defer mux.RUnlock()
+
+	file := filepath.Join(c.Workspace, c.ConfigFile)
+	input, err := os.Open(file)
+	if err != nil {
+		return false
+	}
+	defer input.Close()
+
+	scanner := bufio.NewScanner(input)
+	for scanner.Scan() {
+		// line :=scanner.Bytes()
+		if bytes.ContainsAny(scanner.Bytes(), key) {
+			return true
+		}
+	}
+	return false
+}
+
 func UpFile(config *PorductConfig, s string) error {
+	mux.Lock()
+	defer mux.Unlock()
+
 	file := filepath.Join(config.Workspace, config.ConfigFile)
 	input, err := os.Open(file)
 	if err != nil {
@@ -91,55 +116,55 @@ func GetLog(config *ServerConfig, id int) ([]byte, error) {
 	return ioutil.ReadFile(f)
 }
 
-func ErrCheck(err error) {
-	if err != nil {
-		panic(err)
-	}
-}
+// func ErrCheck(err error) {
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// }
 
-func Atoi(reader io.Reader) (id int) {
-	data, err := ioutil.ReadAll(reader)
-	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
-	id, err = strconv.Atoi(string(data))
-	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
-	return id
-}
+// func Atoi(reader io.Reader) (id int) {
+// 	data, err := ioutil.ReadAll(reader)
+// 	if err != nil {
+// 		fmt.Println(err.Error())
+// 		return
+// 	}
+// 	id, err = strconv.Atoi(string(data))
+// 	if err != nil {
+// 		fmt.Println(err.Error())
+// 		return
+// 	}
+// 	return id
+// }
 
-func CatchBranchs(data []byte) (info [][]string) {
-	catchReg := regexp.MustCompile(`(?s)verCfg\s+=\s+({.*?});`)
-	catchInfo := catchReg.FindSubmatch(data)
-	if len(catchInfo) != 2 {
-		return
-	}
+// func CatchBranchs(data []byte) (info [][]string) {
+// 	catchReg := regexp.MustCompile(`(?s)verCfg\s+=\s+({.*?});`)
+// 	catchInfo := catchReg.FindSubmatch(data)
+// 	if len(catchInfo) != 2 {
+// 		return
+// 	}
 
-	info = [][]string{}
-	reg := regexp.MustCompile(`".*?"`) // 抓取引号内文本
-	for _, s := range strings.Split(string(catchInfo[1]), "\n") {
-		res := reg.FindAllString(s, 2)
-		if len(res) == 2 {
-			for i := range res {
-				res[i] = strings.Trim(res[i], `"`)
-			}
-			info = append(info, res)
-		}
-	}
-	return
-}
+// 	info = [][]string{}
+// 	reg := regexp.MustCompile(`".*?"`) // 抓取引号内文本
+// 	for _, s := range strings.Split(string(catchInfo[1]), "\n") {
+// 		res := reg.FindAllString(s, 2)
+// 		if len(res) == 2 {
+// 			for i := range res {
+// 				res[i] = strings.Trim(res[i], `"`)
+// 			}
+// 			info = append(info, res)
+// 		}
+// 	}
+// 	return
+// }
 
-func CatchTeams(data []byte) (info []string) {
-	catchReg := regexp.MustCompile(`(?s)langsMap\s+=\s+{(.*?)};`)
-	catchInfo := catchReg.FindSubmatch(data)
-	if len(catchInfo) != 2 {
-		return
-	}
+// func CatchTeams(data []byte) (info []string) {
+// 	catchReg := regexp.MustCompile(`(?s)langsMap\s+=\s+{(.*?)};`)
+// 	catchInfo := catchReg.FindSubmatch(data)
+// 	if len(catchInfo) != 2 {
+// 		return
+// 	}
 
-	reg := regexp.MustCompile(`team\d+`)
-	info = reg.FindAllString(string(catchInfo[1]), -1)
-	return
-}
+// 	reg := regexp.MustCompile(`team\d+`)
+// 	info = reg.FindAllString(string(catchInfo[1]), -1)
+// 	return
+// }

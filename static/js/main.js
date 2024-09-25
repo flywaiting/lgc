@@ -112,7 +112,9 @@ const app = new Vue({
         getState(state) {
             return ["完成", "移除", "异常", "中断"][state - 2];
         }
-    }
+    },
+
+    
 });
 
 function getAjax(url, method = "POST") {
@@ -122,7 +124,27 @@ function getAjax(url, method = "POST") {
     return ajax;
 }
 
+
 window.onload = () => {
     app.getCmdInfo(false)
     app.upTaskInfo()
+}
+
+
+function initWebsocket() {
+    const socket = new WebSocket('ws://127.0.0.1:6464/ws')
+    socket.onopen = function (event) {
+        socket.send('init')
+        // 完成连接
+    }
+    socket.onmessage = function (event) {
+        // 接受消息
+    }
+    socket.onclose = function (event) {
+        // 关闭
+    }
+    socket.onerror = function (error) {
+        console.log('websocket error:', error);
+    }
+    return socket
 }

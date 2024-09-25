@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"lgc/util"
 	"regexp"
@@ -46,8 +45,6 @@ func ServerWs(ws *websocket.Conn) {
 	hub.register <- client
 	go client.readPump()
 	go client.writePump()
-
-	// todo 初始化
 }
 
 func CloseClient(c *Client) {
@@ -55,67 +52,95 @@ func CloseClient(c *Client) {
 	hub.unregister <- c
 }
 
-func handler(c *Client) {
-	if c.msg == nil {
+// websocket 连接初始化
+func initConnect(c *Client, msg []byte) (res bool) {
+	if string(msg) != "init" {
 		return
 	}
 
-	var sync SyncData
-	if err := json.Unmarshal(c.msg, &sync); err != nil {
+	res = true
+	team := make(map[string]string)
+	for _, val := range config.Product.Teams {
+		v, ok := teamMap.Load(val)
+		if !ok {
+			team[val] = ""
+		} else {
+			team[val] = v.(string)
+		}
+	}
+	c.ResponseInfo(&SyncData{
+		Team: team,
+		Task: task,
+	})
+	return
+}
+
+// 获取分支列表
+func getBranchList(c *Client, msg []byte) (res bool) {
+	if string(msg) != "branch" {
+		return
+	}
+
+	res = true
+	list, err := util.BranchList(config.Git.TmpRepository)
+	if err != nil {
 		c.ResponseMsg(Err, err.Error())
 		return
 	}
-
-	switch sync.Action {
-	case actTeam:
-		upTeam(sync.Team)
-	case actBranch:
-		upBranch(c, sync.Branch)
-	case actTask:
-		task.handler(c, sync.Item)
-	}
+	c.ResponseInfo(&SyncData{
+		List: list,
+	})
+	return
 }
 
-func upBranch(c *Client, b *Branches) {
+func upEnvConfig(c *Client, b *Branches) (res bool) {
 	if b == nil {
 		return
 	}
-	// 获取分支列表
-	if b.Branch == "" {
-		list, err := util.BranchList(config.Git.TmpRepository)
-		if err != nil {
-			c.ResponseMsg(Err, err.Error())
-			return
-		}
-		b.List = list
-		c.ResponseInfo(&SyncData{
-			Branch: b,
-		})
-		return
-	}
 
-	// 添加分支
+	res = true
 	matched, err := regexp.MatchString(`[a-zA-Z]`, b.Branch)
 	if err != nil {
-		c.ResponseMsg(Err, "分支正则匹配出错了")
+		c.ResponseMsg(Err, "分支正则匹配出错了, 再试试")
 		return
 	}
 	if !matched {
 		b.Alias = b.Branch
 	}
-
 	if b.Alias == "" {
-		c.ResponseMsg(Err, "分支需要个别名")
+		c.ResponseMsg(Err, "分支需要给别名")
 		return
 	}
-
-	// 分支记录模板
+	if util.CheckKeyExist(&config.Product, fmt.Sprintf(`"%s"`, b.Branch)) {
+		return
+	}
 	item := fmt.Sprintf(`"%s": {verIndex:1, branch:{common:"%s", client:"%s", server:"%s", art:"%s"}, },`, b.Alias, b.Branch, b.Branch, b.Branch, b.Branch)
 	err = util.UpFile(&config.Product, item)
 	if err != nil {
 		c.ResponseMsg(Err, err.Error())
-		return
 	}
+	return
+}
+
+func handler(sync *SyncData) {
+	// if c.msg == nil {
+	// 	return
+	// }
+
+	// var sync SyncData
+	// if err := json.Unmarshal(c.msg, &sync); err != nil {
+	// 	c.ResponseMsg(Err, err.Error())
+	// 	return
+	// }
+
+	// switch sync.Action {
+	// case actTeam:
+	// 	upTeam(sync.Team)
+	// case actBranch:
+	// 	upBranch(c, sync.Branch)
+	// case actTask:
+	// 	task.handler(c, sync.Item)
+	// }
 }
 
 func upTeam(team map[string]string) { // c *Client,
@@ -132,24 +157,28 @@ func upTeam(team map[string]string) { // c *Client,
 }
 
 type SyncData struct {
-	Action int               `json:"action"`
-	Team   map[string]string `json:"team"`
-	Branch *Branches         `json:"branch"`
-	Task   *TaskHub          `json:"task"` // ->client, 任务相关信息
-	Item   *TaskItem         `json:"item"` // ->server, 任务操作
+	Team map[string]string `json:"team"` // 测试机分配
+
+	// -> server
+	Item   *TaskItem `json:"item"`   // 打包任务
+	Branch *Branches `json:"branch"` // 配置分支
+
+	// -> client
+	Task *TaskHub `json:"task"` // ->client, 任务相关信息
+	List []string `json:"list"` // ->client, 分支列表
 }
 type Branches struct {
-	// server -> 当前所有分支
-	List []string `json:"list"`
+	// // server -> 当前所有分支
+	// List []string `json:"list"`
 	// client -> 新增分支
 	Branch string `json:"branch"`
 	// 新分支别名
 	Alias string `json:"alias"`
 }
 
-const (
-	Init = iota
-	actTeam
-	actBranch
-	actTask
-)
+// const (
+// 	Init = iota
+// 	actTeam
+// 	actBranch
+// 	actTask
+// )
