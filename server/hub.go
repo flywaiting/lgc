@@ -1,14 +1,15 @@
 package server
 
-import "encoding/json"
+import (
+	"encoding/json"
+)
 
 type Hub struct {
 	clients    map[*Client]bool
 	register   chan *Client
 	unregister chan *Client
-	// request    chan *Client
-	sync      chan *SyncData
-	broadcast chan []byte
+	broadcast  chan []byte
+	// sync       chan *SyncData
 }
 
 func (h *Hub) run() {
@@ -22,12 +23,15 @@ func (h *Hub) run() {
 				close(client.send)
 			}
 		// case client := <-h.request:
-		case sync := <-h.sync:
-			handler(sync)
-		case message := <-h.broadcast:
+		// case sync := <-h.sync:
+		// 	handler(sync)
+		// 	println("after sync")
+		case msg := <-h.broadcast:
+			// println("hub broadcast", string(msg))
+			// println("current size", len(h.clients))
 			for client := range h.clients {
 				select {
-				case client.send <- message:
+				case client.send <- msg:
 				default:
 					close(client.send)
 					delete(h.clients, client)

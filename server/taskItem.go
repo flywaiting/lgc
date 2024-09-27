@@ -11,6 +11,7 @@ type TaskItem struct {
 	To         []string `json:"to"`     // 完成通知
 	Pattern    string   `json:"patten"` // 任务类型
 	Team       string   `json:"team"`
+	Branch     string   `json:"branch"`
 	Status     int      `json:"status"`
 	CreateTime int64    `json:"createTime"`
 	ActiveTime int64    `json:"activeTime"` // 开始执行时间戳

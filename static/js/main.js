@@ -7,11 +7,96 @@ const app = new Vue({
         createInfo: {},
         taskInfo: {},
 
-        curTask: "",
         loopFlag: false,
+        
+        socket: null,
+        teams: {},
+        list: [],    // 仓库分支列表
+        pattern: [],  // 打包模式
+        curTask: "",    // 当前任务
+
+        upInfo: {}, // 更新映射关系
+        env: {}, // 配置分支
+        item: {}, // 任务
+    },
+
+    mounted() {
+        this.socket = this.getWebsocket();
     },
 
     methods: {
+        getWebsocket() {
+            let self = this;
+            let location = window.location;
+            const socket = new WebSocket(`ws://${location.hostname}:${location.port}/ws`);
+            socket.onopen = function (event) {
+                socket.send('init');
+            }
+            socket.onmessage = function (event) {
+                // let sync = JSON.parse(event.data);
+                // if (sync.type) {
+                //     alert(sync.info);
+                //     return;
+                // }
+                event.data && self.handler(JSON.parse(event.data));
+            }
+            socket.onclose = function (event) {
+                self.socket = null;
+            }
+            socket.onerror = function (error) {
+                console.log('websocket error:', error);
+            }
+            return socket;
+        },
+
+        handler(sync) {
+            if (!sync) return;
+            if (sync.type) {
+                sync.type > 1 && alert(sync.info);
+                // todo 日志弹窗
+                return;
+            }
+
+            console.log(sync);
+            if (sync.team) {
+                let teams = {};
+                for (let key in (this.teams || {})) {
+                    teams[key] = this.teams[key];
+                }
+                for (let key in sync.team) {
+                    teams[key] = sync.team[key];
+                }
+                this.teams = teams;
+            }
+            if (sync.list) this.list = sync.list;
+            if (sync.pattern) this.pattern = sync.pattern.reverse()
+        },
+        // 测试服分支设置
+        upTeam() {
+            let info = this.upInfo;
+            if (!info.team || !info.branch) {
+                alert("信息填写不全")
+                return;
+            }
+
+            let opt = { [info.team]: info.branch };
+            this.socket.send(JSON.stringify({ team: opt }));
+        },
+        // 重新抓取分支列表
+        upBranch() {
+            this.socket.send("branch");
+        },
+        // 修改分支配置
+        upEnv() {
+            let info = this.env;
+            if (!info.branch) {
+                alert("缺少目标分支");
+                return;
+            }
+
+            this.socket.send(JSON.stringify({ branch: info }));
+        },
+
         getCmdInfo(refresh) {
             let self = this;
             let method = refresh ? "POST" : "GET";
@@ -117,6 +202,8 @@ const app = new Vue({
     
 });
 
+// let socket;
+
 function getAjax(url, method = "POST") {
     let ajax = new XMLHttpRequest();
     ajax.open(method, url);
@@ -126,25 +213,11 @@ function getAjax(url, method = "POST") {
 
 
 window.onload = () => {
-    app.getCmdInfo(false)
-    app.upTaskInfo()
+    // app.getCmdInfo(false)
+    // app.upTaskInfo()
+    initWebsocket();
 }
 
 
 function initWebsocket() {
-    const socket = new WebSocket('ws://127.0.0.1:6464/ws')
-    socket.onopen = function (event) {
-        socket.send('init')
-        // 完成连接
-    }
-    socket.onmessage = function (event) {
-        // 接受消息
-    }
-    socket.onclose = function (event) {
-        // 关闭
-    }
-    socket.onerror = function (error) {
-        console.log('websocket error:', error);
-    }
-    return socket
 }

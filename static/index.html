@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>lgc</title>
+    <title>Leng</title>
 
     <link rel="stylesheet" href="css/style.css">
     <link rel="icon" href="data:;base64,=">
@@ -12,46 +12,35 @@
 <body>
     
     <div id="app">
-        <h1>LGC</h1>
+        <h1>Leng</h1>
         <hr>
 
-        <div class="createTask">
-            <h2>添加任务</h2>
-            <button class="button" title="获取新增分支信息" @click="getCmdInfo(true)">refresh</button>
-            <button class="button" @click="addTask">add</button>
+        <div class="task">
+            <h2>任务</h2>
 
-            <div class="cmdInfo">
-                <div class="cmdItem">
-                    <label for="pattern">pattern</label>
-                    <select name="pattern" id="pattern" v-model="createInfo.pattern">
-                        <option v-for="pattern in cmdInfo.patterns" :value="pattern">{{pattern}}</option>
-                    </select>
-                </div>
-                <div class="cmdItem">
-                    <label for="team">team</label>
-                    <select name="team" id="team" v-model="createInfo.team">
-                        <option v-for="team in cmdInfo.teams" :value="team">{{team}}</option>
-                    </select>
-                </div>
-                <div class="cmdItem">
-                    <label for="branch">branch</label>
-                    <select name="branch" id="branch" v-model="createInfo.branch">
-                        <option v-for="branch in cmdInfo.branchs" :value="branch[0]">{{branch[1]}}</option>
-                    </select>
-                </div>
-            </div>
-        </div>
-        <hr>
+            <p><strong>新任务</strong></p>
+            <label for="pattern">打包模式</label>
+            <select name="" id="pattern" v-model="item.pattern">
+                <option v-for="val in pattern" :value="val">{{val}}</option>
+            </select>
+            <label for="team">测试服</label>
+            <select name="" id="team" v-model="item.team">
+                <option v-for="(_, key) in teams" :value="key">{{key}}</option>
+            </select>
+            <button class="button" @click="addTask">添加</button>
+            <!-- <li v-for="(branch, team) in teams">
+                {{ team }}: {{branch}}
+            </li> -->
+            <br>
+            <span v-for="(branch, team, i) in teams" >
+                {{team}}: {{branch}} <br>
+            </span>
 
-        <div class="runningTask">
-            <h2>当前运行任务</h2>
+            <p><strong>运行中</strong></p>
             <span>{{ curTask || "none" }}</span>
             <button @click="stopTask(0)" v-show="curTask">stop</button>
-        </div>
-        <hr>
 
-        <div class="todo">
-            <h3>todo list</h3>
+            <p><strong>队列</strong></p>
             <div class="list" v-for="item in taskInfo.todo" :class="{'odd':item.id%2==1}">
                 <span>{{ `${item.ip}:`}}</span>
                 <span class="tip">{{`${item.pattern}:: ${item.branch}=>${item.team}`}}</span>
@@ -59,6 +48,34 @@
                 <button @click="stopTask(item.id)" title="移除任务">remove</button>
             </div>
             <span v-show="!taskInfo.todo || !taskInfo.todo.length ">none</span>
+        </div>
+        <hr>
+
+        <div>
+            <h2>配置</h2>
+
+            <p><strong>测试服映射</strong></p>
+            <label for="upTeam">测试服</label>
+            <select id="upTeam" v-model="upInfo.team">
+                <option v-for="(_, team) in teams" :value="team">{{team}}</option>
+            </select>
+            <!-- <span>:</span> -->
+            <label for="upBranch">分支</label>
+            <select id="upBranch" v-model="upInfo.branch">
+                <option v-for="branch in list" :value="branch">{{branch}}</option>
+            </select>
+            <button class="button" @click="upTeam" title="没事别乱改 不然吊起来打">更新</button>
+            <!-- <p></p> -->
+            <button class="button" @click="upBranch">刷新分支</button>
+
+            <p><strong>添加分支</strong></p>
+            <label for="addBranch">分支</label>
+            <select name="" id="addBranch" v-model="env.branch">
+                <option v-for="branch in list" :value="branch">{{branch}}</option>
+            </select>
+            <label for="alias">别名[含字母需要另起别名]</label>
+            <input type="text" v-model="env.alias">
+            <button @click="upEnv">添加</button>
         </div>
         <hr>
 
