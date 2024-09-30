@@ -14,6 +14,18 @@ import (
 
 var mux sync.RWMutex
 
+func InitLog(c *Workspace) {
+	// 初始化日志文件夹
+	log := filepath.Join(c.Root, c.Log)
+	if _, err := os.Stat(log); err == nil || os.IsExist(err) {
+		os.RemoveAll(log)
+	}
+	if err := os.MkdirAll(log, 0775); err != nil {
+		panic("日志文件夹创建出错")
+	}
+
+}
+
 // 获取仓库分支列表
 func BranchList(path string) ([]string, error) {
 	// 记录工作环境 完成分支抓取之后进行还原

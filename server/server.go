@@ -24,7 +24,6 @@ func init() {
 		broadcast:  make(chan []byte),
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
-		// sync:       make(chan *SyncData),
 	}
 	task := &TaskHub{
 		counter: 1,
@@ -32,16 +31,16 @@ func init() {
 		ctx:     context.Background(),
 	}
 	config = util.InitConfig()
-
 	list, err := util.BranchList(config.Git.TmpRepository)
 	if err != nil {
 		panic("仓库分支抓取出错")
 	}
 	envMap.Store("branch", list)
-
 	for key, val := range util.GetBranchAliasMap(&config.Project) {
 		envMap.Store(key, val)
 	}
+
+	util.InitLog(&config.Workspace)
 
 	go hub.run()
 	go task.run()
