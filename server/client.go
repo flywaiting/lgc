@@ -10,6 +10,8 @@ type Client struct {
 	conn *websocket.Conn
 	send chan []byte
 	// msg  []byte
+
+	owner string // 持有者 简单的用户管理 连接阶段初始化
 }
 
 type Message struct {
@@ -47,6 +49,9 @@ func (c *Client) readPump() {
 			continue
 		}
 
+		if sync.Item != nil {
+			sync.Item.From = c.owner
+		}
 		handler(&sync)
 	}
 }

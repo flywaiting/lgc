@@ -6,13 +6,14 @@ apply = [
     ["git", "push"]
 ]
 
-[product]
+[project]
 teams = ["team1", "team2", "team3", "team4", "team9"]
 pattern = ["product", "client-product", "server-product", "gm-product"]
-insertFlag =  "// 这是插入标记"
-workspace = "."
-configFile = "cfg.js"
 
-[server]
-log = "log" # 日志目录
 root = "."
+config = "cfg.js"
+flag =  "// 这是插入标记"
+
+[workspace]
+root = "."
+log = "log" # 日志目录

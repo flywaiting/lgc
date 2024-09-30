@@ -14,6 +14,7 @@ const app = new Vue({
         list: [],    // 仓库分支列表
         pattern: [],  // 打包模式
         curTask: "",    // 当前任务
+        logInfo: "",
 
         upInfo: {}, // 更新映射关系
         env: {}, // 配置分支
@@ -53,7 +54,7 @@ const app = new Vue({
             if (!sync) return;
             if (sync.type) {
                 sync.type > 1 && alert(sync.info);
-                // todo 日志弹窗
+                if (sync.type == 1) this.logInfo = sync.info;
                 return;
             }
 
@@ -71,7 +72,7 @@ const app = new Vue({
             if (sync.list) this.list = sync.list;
             if (sync.pattern) this.pattern = sync.pattern.reverse()
         },
-        // 测试服分支设置
+        // 测试服设置
         upTeam() {
             let info = this.upInfo;
             if (!info.team || !info.branch) {
@@ -86,15 +87,43 @@ const app = new Vue({
         upBranch() {
             this.socket.send("branch");
         },
-        // 修改分支配置
+        // 添加分支
         upEnv() {
             let info = this.env;
             if (!info.branch) {
-                alert("缺少目标分支");
+                alert("选个分支");
                 return;
             }
 
             this.socket.send(JSON.stringify({ branch: info }));
+        },
+        getLog(id) {
+            if (!id || id < 0) {
+                alert("日志ID有问题");
+                return;
+            }
+            this.socket.send(JSON.stringify({ log: id }));
+        },
+        closeLog() {
+            this.logInfo = "";
+        },
+        addTask() {
+            let item = this.item;
+            if (!item.pattern || !item.team) {
+                alert("信息勾选不全");
+                return;
+            }
+            item.branch = this.teams[item.team];
+            if (!item.branch) {
+                alert("测试服分支未设置");
+                return;
+            }
+            
+            this.socket.send(JSON.stringify({ item }));
+        },
+        stopTask(id) {
+            if (!id || id < 0) return;
+            this.socket.send(JSON.stringify({ item: { id } }));
         },
 
         getCmdInfo(refresh) {
@@ -129,42 +158,6 @@ const app = new Vue({
                 cur && self.loop();
             }
             ajax.send()
-        },
-        addTask() {
-            let self = this;
-            let info = self.createInfo;
-            if (Object.keys(info).length != 3) {
-                alert("信息不全");
-                return;
-            }
-
-            let ajax = getAjax("/addTask");
-            ajax.onload = () => {
-                if (ajax.status != 200) {
-                    alert("添加失败");
-                    return;
-                }
-                self.upTaskInfo()
-            }
-
-            ajax.send(JSON.stringify(info));
-        },
-        stopTask(id, url="/removeTask") {
-            let self = this;
-            if (!id && self.taskInfo.cur) {
-                id = self.taskInfo.cur.id;
-                url = "/stopTask";
-            }
-            if (!id) {
-                alert("无任务ID");
-                return;
-            }
-
-            let ajax = getAjax(url)
-            ajax.onload = () => {
-                self.upTaskInfo();
-            };
-            ajax.send(id);
         },
         loop() {
             let self = this;

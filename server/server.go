@@ -15,7 +15,7 @@ var config *util.Config
 
 // var envMap map[string]string
 var envMap = sync.Map{}
-var task *TaskHub
+var taskHub *TaskHub
 var handerMux sync.Mutex
 
 func init() {
@@ -27,17 +27,21 @@ func init() {
 		// sync:       make(chan *SyncData),
 	}
 	task := &TaskHub{
-		Counter: 0,
+		counter: 1,
 		item:    make(chan *TaskItem),
 		ctx:     context.Background(),
 	}
 	config = util.InitConfig()
+
 	list, err := util.BranchList(config.Git.TmpRepository)
 	if err != nil {
 		panic("仓库分支抓取出错")
 	}
 	envMap.Store("branch", list)
-	// teamMap = make(map[string]string, 0)
+
+	for key, val := range util.GetBranchAliasMap(&config.Project) {
+		envMap.Store(key, val)
+	}
 
 	go hub.run()
 	go task.run()
@@ -67,12 +71,12 @@ func initConnect(c *Client, msg []byte) (res bool) {
 
 	res = true
 	sync := &SyncData{
-		Task:    task,
+		Task:    taskHub,
 		Team:    make(map[string]string),
-		Pattern: config.Product.Pattern,
+		Pattern: config.Project.Pattern,
 	}
 	// team := make(map[string]string)
-	for _, val := range config.Product.Teams {
+	for _, val := range config.Project.Teams {
 		v, ok := envMap.Load(val)
 		if !ok {
 			sync.Team[val] = ""
@@ -125,13 +129,16 @@ func upEnvConfig(c *Client, b *Branches) (res bool) {
 		c.ResponseMsg(Err, "分支需要给别名")
 		return
 	}
-	if util.CheckKeyExist(&config.Product, fmt.Sprintf(`"%s"`, b.Branch)) {
+	if util.CheckKeyExist(&config.Project, []byte(fmt.Sprintf(`"%s"`, b.Branch))) {
+		c.ResponseMsg(Msg, "分支已存在")
 		return
 	}
-	item := fmt.Sprintf(`"%s": {verIndex:1, branch:{common:"%s", client:"%s", server:"%s", art:"%s"}, },`, b.Alias, b.Branch, b.Branch, b.Branch, b.Branch)
-	err = util.UpFile(&config.Product, item)
+	err = util.UpFile(&config.Project, fmt.Sprintf(`"%s": {verIndex:1, branch:{common:"%s", client:"%s", server:"%s", art:"%s"}, },`, b.Alias, b.Branch, b.Branch, b.Branch, b.Branch))
 	if err != nil {
 		c.ResponseMsg(Err, err.Error())
+	}
+	if b.Alias != b.Branch {
+		envMap.Store(b.Branch, b.Alias)
 	}
 	return
 }
@@ -143,7 +150,7 @@ func getLog(c *Client, id int) (res bool) {
 	}
 
 	res = true
-	log, err := util.GetLog(&config.Server, id)
+	log, err := util.GetLog(&config.Workspace, id)
 	if err != nil {
 		c.ResponseMsg(Err, err.Error())
 		return
@@ -160,7 +167,14 @@ func handler(sync *SyncData) {
 		return
 	}
 
-	upTeam(sync.Team)
+	if sync.Team != nil {
+		upTeam(sync.Team)
+		return
+	}
+	if sync.Item != nil {
+		taskHub.item <- sync.Item
+		return
+	}
 
 	// var sync SyncData
 	// if err := json.Unmarshal(c.msg, &sync); err != nil {
@@ -197,7 +211,7 @@ type SyncData struct {
 	Team map[string]string `json:"team"` // 测试机分配
 
 	// ->server
-	Item   *TaskItem `json:"item"`   // 打包任务
+	Item   *TaskItem `json:"item"`   // 任务
 	Branch *Branches `json:"branch"` // 配置分支
 	Log    int       `json:"log"`    // 日子ID
 
@@ -210,6 +224,5 @@ type SyncData struct {
 // ->server 配置分支
 type Branches struct {
 	Branch string `json:"branch"`
-	// 分支别名
-	Alias string `json:"alias"`
+	Alias  string `json:"alias"` // 分支别名
 }

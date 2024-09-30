@@ -8,7 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
+	"regexp"
 	"sync"
 )
 
@@ -38,26 +38,60 @@ func BranchList(path string) ([]string, error) {
 		return nil, err
 	}
 
-	branches := strings.Split(strings.TrimSpace(string(output)), "\n")
+	// branches := strings.Split(strings.TrimSpace(string(output)), "\n")
+	branches := bytes.Split(bytes.TrimSpace(output), []byte("\n"))
+	tag := []byte("HEAD")
+	split := []byte("/")
 	var res []string
 	for _, branch := range branches {
-		if strings.Contains(branch, "HEAD") {
+		if bytes.Contains(branch, tag) {
 			continue
 		}
-		arr := strings.Split(strings.TrimSpace(branch), "/")
+		arr := bytes.Split(branch, split)
 		if len(arr) > 1 {
-			res = append(res, arr[1])
+			res = append(res, string(arr[1]))
 		}
 	}
 	return res, nil
 }
 
-// 检测配置文件是否存在 key 字符串
-func CheckKeyExist(c *PorductConfig, key string) bool {
+// branch: alias
+func GetBranchAliasMap(c *Project) (res map[string]string) {
 	mux.RLock()
 	defer mux.RUnlock()
 
-	file := filepath.Join(c.Workspace, c.ConfigFile)
+	file := filepath.Join(c.Root, c.Config)
+	input, err := os.Open(file)
+	if err != nil {
+		return
+	}
+	defer input.Close()
+
+	reg := regexp.MustCompile(`".*?"`)
+	target := []byte("verIndex")
+	res = make(map[string]string)
+	scanner := bufio.NewScanner(input)
+	for scanner.Scan() {
+		line := scanner.Bytes()
+		if !bytes.Contains(line, target) {
+			continue
+		}
+
+		match := reg.FindAll(line, 2)
+		if match == nil || len(match) < 2 || bytes.Equal(match[0], match[1]) {
+			continue
+		}
+		res[string(match[1])] = string(match[0])
+	}
+	return
+}
+
+// 检测配置文件是否存在 key 字符串
+func CheckKeyExist(c *Project, sub []byte) bool {
+	mux.RLock()
+	defer mux.RUnlock()
+
+	file := filepath.Join(c.Root, c.Config)
 	input, err := os.Open(file)
 	if err != nil {
 		return false
@@ -67,25 +101,25 @@ func CheckKeyExist(c *PorductConfig, key string) bool {
 	scanner := bufio.NewScanner(input)
 	for scanner.Scan() {
 		// line :=scanner.Bytes()
-		if bytes.ContainsAny(scanner.Bytes(), key) {
+		if bytes.Contains(scanner.Bytes(), sub) {
 			return true
 		}
 	}
 	return false
 }
 
-func UpFile(config *PorductConfig, s string) error {
+func UpFile(config *Project, s string) error {
 	mux.Lock()
 	defer mux.Unlock()
 
-	file := filepath.Join(config.Workspace, config.ConfigFile)
+	file := filepath.Join(config.Root, config.Config)
 	input, err := os.Open(file)
 	if err != nil {
 		return err
 	}
 	defer input.Close()
 
-	tmp := filepath.Join(config.Workspace, "tmp")
+	tmp := filepath.Join(config.Root, "tmp")
 	output, err := os.Create(tmp)
 	if err != nil {
 		return err
@@ -94,9 +128,10 @@ func UpFile(config *PorductConfig, s string) error {
 
 	scanner := bufio.NewScanner(input)
 	writer := bufio.NewWriter(output)
+	target := []byte(config.Flag)
 	for scanner.Scan() {
 		line := scanner.Bytes()
-		if bytes.ContainsAny(line, config.InsertFlag) {
+		if bytes.Contains(line, target) {
 			if _, err := writer.WriteString(s + "\n"); err != nil {
 				return err
 			}
@@ -104,14 +139,19 @@ func UpFile(config *PorductConfig, s string) error {
 		if _, err := writer.Write(line); err != nil {
 			return err
 		}
+		if err := writer.WriteByte('\n'); err != nil {
+			return err
+		}
 	}
 	writer.Flush()
+	input.Close()
+	output.Close()
 
 	err = os.Rename(tmp, file)
 	return err
 }
 
-func GetLog(config *ServerConfig, id int) ([]byte, error) {
+func GetLog(config *Workspace, id int) ([]byte, error) {
 	f := filepath.Join(config.Root, config.Log, fmt.Sprintf("%d.log", id))
 	return ioutil.ReadFile(f)
 }

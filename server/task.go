@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"lgc/util"
 	"sync"
 	"time"
 )
@@ -26,10 +25,9 @@ type TaskHub struct {
 	TodoList   []TaskItem `json:"todoList"`
 	FinishList []TaskItem `json:"finishList"`
 	Current    *TaskItem  `json:"current"` // 当前进行中的任务
-	Counter    int        // 任务计数
+	counter    int        // 任务计数
 
 	item chan *TaskItem
-	id   chan *int // 移除任务
 
 	ctx context.Context
 	sync.RWMutex
@@ -41,16 +39,17 @@ const (
 	Doing
 	Git // git环节
 	Finish
+	Error
 	Interrupt
 	Cancel
 )
 
-func (t *TaskHub) Enqueue(item *TaskItem) {
+func (t *TaskHub) enqueue(item *TaskItem) {
 	t.Lock()
 	defer t.Unlock()
 	t.TodoList = append(t.TodoList, *item)
 }
-func (t *TaskHub) Dequeue() *TaskItem {
+func (t *TaskHub) dequeue() *TaskItem {
 	t.Lock()
 	defer t.Unlock()
 
@@ -62,12 +61,13 @@ func (t *TaskHub) Dequeue() *TaskItem {
 	return &item
 }
 
-func (t *TaskHub) Size() int {
-	t.RLock()
-	defer t.RUnlock()
-	return len(t.TodoList)
-}
-func (t *TaskHub) Del(id int) *TaskItem {
+//	func (t *TaskHub) size() int {
+//		t.RLock()
+//		defer t.RUnlock()
+//		return len(t.TodoList)
+//	}
+
+func (t *TaskHub) del(id int) *TaskItem {
 	t.Lock()
 	defer t.Unlock()
 
@@ -90,41 +90,64 @@ func (t *TaskHub) Del(id int) *TaskItem {
 	return &item
 }
 
+func (t *TaskHub) push(item *TaskItem) {
+	t.Lock()
+	defer t.Unlock()
+
+	cnt := len(t.FinishList)
+	if cnt > 10 {
+		t.FinishList = t.FinishList[cnt-10:]
+	}
+	t.FinishList = append(t.FinishList, *item)
+}
+
 func (t *TaskHub) run() {
-	for {
-		select {
-		case item := <-t.item:
-			t.Counter++
-			item.Id = t.Counter
-			item.CreateTime = time.Now().Unix()
-			t.Enqueue(item)
-			t.next()
-		case id := <-t.id:
-			t.remove(*id)
+	// for {
+	// 	select {
+	// 	case item := <-t.item:
+	// 		t.Counter++
+	// 		item.Id = t.Counter
+	// 		item.CreateTime = time.Now().Unix()
+	// 		t.enqueue(item)
+	// 		t.next()
+	// 	case id := <-t.id:
+	// 		t.remove(*id)
+	// 	}
+	// }
+
+	for item := range t.item {
+		if item.Id > 0 {
+			t.remove(item.Id)
+			continue
 		}
+
+		if alias, ok := envMap.Load(item.Branch); ok {
+			item.alias = alias.(string)
+		} else {
+			item.alias = item.Branch
+		}
+		item.Id = t.counter
+		t.counter++
+		item.CreateTime = time.Now().Unix()
+		item.Status = Wait
+		t.enqueue(item)
+		t.next()
 	}
 }
 
-func (t *TaskHub) handler(c *Client, item *TaskItem) {
-	if item == nil {
-		return
-	}
+// func (t *TaskHub) handler(item *TaskItem) {
+// 	if item.Id > 0 {
+// 		t.remove(item.Id)
+// 		return
+// 	}
 
-	if item.Log != 0 {
-		log, err := util.GetLog(&config.Server, item.Log)
-		if err != nil {
-			c.ResponseMsg(Err, err.Error())
-		}
-		c.ResponseMsg(Log, string(log))
-		return
-	}
+// 	t.item <- item
 
-	if item.Id != 0 {
-		return
-	}
-
-	// 新任务
-}
+// 	// 新任务
+// 	if alias, ok := envMap.Load(item.Branch); ok {
+// 		item.alias = alias.(string)
+// 	}
+// }
 
 func (t *TaskHub) next() {
 	if t.Current != nil {
@@ -134,7 +157,7 @@ func (t *TaskHub) next() {
 		return
 	}
 
-	item := t.Dequeue()
+	item := t.dequeue()
 	if item == nil {
 		hub.response(&SyncData{
 			Task: t,
@@ -145,9 +168,9 @@ func (t *TaskHub) next() {
 	item.Status = Doing
 	item.ActiveTime = time.Now().Unix()
 	t.Current = item
-
 	item.ctx, item.fn = context.WithCancel(t.ctx)
 	go item.run()
+
 	hub.response(&SyncData{
 		Task: t,
 	})
@@ -162,27 +185,28 @@ func (t *TaskHub) remove(id int) {
 		}
 
 		cur.finish(Interrupt)
-		t.FinishList = append(t.FinishList, *cur)
+		t.push(cur)
 		t.Current = nil
 		t.next()
 		return
 	}
 
-	item := t.Del(id)
+	item := t.del(id)
 	if item == nil {
 		return
 	}
 	item.finish(Cancel)
-	t.FinishList = append(t.FinishList, *item)
+	// t.FinishList = append(t.FinishList, *item)
+	t.push(item)
 	t.next()
 }
 
-func (t *TaskHub) finish() {
+func (t *TaskHub) finish(state int) {
 	item := t.Current
 	t.Current = nil
 	if item != nil {
-		item.finish(Finish)
-		t.FinishList = append(t.FinishList, *item)
+		item.finish(state)
+		t.push(item)
 	}
 	t.next()
 }

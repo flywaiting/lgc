@@ -3,24 +3,24 @@ package util
 import "github.com/BurntSushi/toml"
 
 type Config struct {
-	Git     GitConfig     `toml:"git"`
-	Product PorductConfig `toml:"product"`
-	Server  ServerConfig  `toml:"server"`
+	Git       Git       `toml:"git"`
+	Project   Project   `toml:"project"`
+	Workspace Workspace `toml:"workspace"`
 }
 
-type GitConfig struct {
+type Git struct {
 	TmpRepository string     `toml:"tmpRepository"`
 	Apply         [][]string `toml:"apply"`
 }
-type PorductConfig struct {
-	Teams      []string `toml:"teams"`
-	Pattern    []string `toml:"pattern"`
-	Workspace  string   `toml:"workspace"`  // 工作目录
-	ConfigFile string   `toml:"configFile"` // 配置文件
-	InsertFlag string   `toml:"insertFlag"`
+type Project struct {
+	Teams   []string `toml:"teams"`
+	Pattern []string `toml:"pattern"`
+	Root    string   `toml:"root"`   // 项目路径
+	Config  string   `toml:"config"` // 项目配置文件
+	Flag    string   `toml:"flag"`   // 识别标识
 }
-type ServerConfig struct {
-	Root string `toml:"root"` // 根目录
+type Workspace struct {
+	Root string `toml:"root"` // 程序运行位置
 	Log  string `toml:"log"`  // 日志目录
 }
 
